@@ -1,0 +1,656 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>catalyst.dl.runner &mdash; Catalyst 19.02-rc0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../',
+              VERSION:'19.02-rc0',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Catalyst
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                19.02
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Catalyst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../info/examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../info/contributing.html">Contribution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../info/license.html">License</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/dl.html">DL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/rl.html">RL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/contrib.html">Contrib</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/utils.html">Utils</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Catalyst</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>catalyst.dl.runner</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for catalyst.dl.runner</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tqdm</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="k">import</span> <span class="n">Namespace</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Dict</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+<span class="kn">import</span> <span class="nn">torch.utils.data</span> <span class="k">as</span> <span class="nn">data</span>
+
+<span class="kn">from</span> <span class="nn">catalyst.contrib.registry</span> <span class="k">import</span> <span class="n">Registry</span>
+<span class="kn">from</span> <span class="nn">catalyst.dl.utils</span> <span class="k">import</span> <span class="n">UtilsFactory</span>
+<span class="kn">from</span> <span class="nn">catalyst.utils.misc</span> <span class="k">import</span> <span class="n">merge_dicts</span>
+<span class="kn">from</span> <span class="nn">catalyst.dl.callbacks</span> <span class="k">import</span> <span class="n">Callback</span>
+<span class="kn">from</span> <span class="nn">catalyst.dl.datasource</span> <span class="k">import</span> <span class="n">AbstractDataSource</span>
+<span class="kn">from</span> <span class="nn">catalyst.dl.state</span> <span class="k">import</span> <span class="n">RunnerState</span>
+<span class="kn">from</span> <span class="nn">catalyst.dl.fp16</span> <span class="k">import</span> <span class="n">Fp16Wrap</span>
+
+<span class="n">STAGE_KEYWORDS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;criterion_params&quot;</span><span class="p">,</span> <span class="s2">&quot;optimizer_params&quot;</span><span class="p">,</span> <span class="s2">&quot;scheduler_params&quot;</span><span class="p">,</span> <span class="s2">&quot;stage_params&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;state_params&quot;</span><span class="p">,</span> <span class="s2">&quot;data_params&quot;</span><span class="p">,</span> <span class="s2">&quot;callbacks_params&quot;</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="BaseModelRunner"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner">[docs]</a><span class="k">class</span> <span class="nc">BaseModelRunner</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract model run handler.</span>
+<span class="sd">    Based on model, it&#39;s criterion, optimizer and scheduler stuff.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseModelRunner.__init__"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">criterion</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="p">:</span> <span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">scheduler</span><span class="p">:</span> <span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">_LRScheduler</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        :param model: nn.Module instance, your model</span>
+<span class="sd">        :param criterion: torch criterion</span>
+<span class="sd">        :param optimizer:  torch optimizer</span>
+<span class="sd">        :param scheduler: torch scheduler</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">criterion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">scheduler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Inner method for children&#39;s classes for model specific initialization.</span>
+<span class="sd">        As baseline, checks device support and puts model on it.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">UtilsFactory</span><span class="o">.</span><span class="n">prepare_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_state</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunnerState</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Inner method for children&#39;s classes for state specific initialization.</span>
+<span class="sd">        :return: RunnerState with all necessary parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">additional_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># transfer previous counters from old state</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">additional_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="p">,</span>
+                <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">&quot;best_metrics&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">best_metrics</span>
+            <span class="p">}</span>
+        <span class="k">return</span> <span class="n">RunnerState</span><span class="p">(</span>
+            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span>
+            <span class="n">criterion</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">,</span>
+            <span class="n">optimizer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span>
+            <span class="n">scheduler</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">additional_kwargs</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="BaseModelRunner.run_event"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.run_event">[docs]</a>    <span class="k">def</span> <span class="nf">run_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">callbacks</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callback</span><span class="p">],</span> <span class="n">event</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Innert method to run special event for all available callbacks.</span>
+
+<span class="sd">        :param callbacks:</span>
+<span class="sd">        :param event:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{event}</span><span class="s2">_pre&quot;</span><span class="p">)(</span><span class="n">state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">callback</span> <span class="ow">in</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">event</span><span class="p">)(</span><span class="n">state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+        <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">f</span><span class="s2">&quot;</span><span class="si">{event}</span><span class="s2">_post&quot;</span><span class="p">)(</span><span class="n">state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseModelRunner.run"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">loaders</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">],</span>
+        <span class="n">callbacks</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callback</span><span class="p">],</span>
+        <span class="n">state_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">start_epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">logdir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main method for running train/valid/infer/debug pipeline over model.</span>
+
+<span class="sd">        :param loaders: OrderedDict of torch DataLoaders to run on</span>
+<span class="sd">        :param callbacks: OrderedDict of callback to use</span>
+<span class="sd">        :param state_params: params for state initialization</span>
+<span class="sd">        :param epochs: number of epochs to run</span>
+<span class="sd">        :param start_epoch:</span>
+<span class="sd">        :param mode: mode - train/infer/debug</span>
+<span class="sd">        :param verbose: boolean flag for tqdm progress bar</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loaders</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">)</span>
+
+        <span class="n">state_params</span> <span class="o">=</span> <span class="n">state_params</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_state</span><span class="p">(</span>
+            <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stage</span><span class="p">,</span> <span class="n">logdir</span><span class="o">=</span><span class="n">logdir</span><span class="p">,</span> <span class="o">**</span><span class="n">state_params</span>
+        <span class="p">)</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_event</span><span class="p">(</span><span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="n">f</span><span class="s2">&quot;on_</span><span class="si">{mode}</span><span class="s2">_start&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">start_epoch</span> <span class="o">+</span> <span class="n">epochs</span><span class="p">):</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="n">epoch</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_event</span><span class="p">(</span><span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="s2">&quot;on_epoch_start&quot;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">loader_mode</span><span class="p">,</span> <span class="n">loader</span> <span class="ow">in</span> <span class="n">loaders</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">state</span><span class="o">.</span><span class="n">loader_mode</span> <span class="o">=</span> <span class="n">loader_mode</span>
+                <span class="n">state</span><span class="o">.</span><span class="n">is_train</span> <span class="o">=</span> <span class="n">loader_mode</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
+                <span class="n">state</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">batch_size</span>
+                <span class="n">state</span><span class="o">.</span><span class="n">loader_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span>
+                <span class="n">state</span><span class="o">.</span><span class="n">step</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">state</span><span class="o">.</span><span class="n">step</span> <span class="ow">or</span> <span class="n">state</span><span class="o">.</span><span class="n">epoch</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">batch_size</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">is_train</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">run_event</span><span class="p">(</span><span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="s2">&quot;on_loader_start&quot;</span><span class="p">)</span>
+                <span class="n">loader</span> <span class="o">=</span> <span class="n">tqdm</span><span class="o">.</span><span class="n">tqdm</span><span class="p">(</span>
+                    <span class="n">loader</span><span class="p">,</span>
+                    <span class="n">desc</span><span class="o">=</span><span class="n">f</span><span class="s2">&quot;</span><span class="si">{epoch}</span><span class="s2"> * Epoch (</span><span class="si">{loader_mode}</span><span class="s2">)&quot;</span><span class="p">,</span>
+                    <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">),</span>
+                    <span class="n">leave</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span>
+                    <span class="n">ncols</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="p">)</span> <span class="k">if</span> <span class="n">verbose</span> <span class="k">else</span> <span class="n">loader</span>
+
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dct</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">loader</span><span class="p">):</span>
+                    <span class="n">dct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch2device</span><span class="p">(</span><span class="n">dct</span><span class="o">=</span><span class="n">dct</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+                    <span class="n">state</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">dct</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">run_event</span><span class="p">(</span><span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="s2">&quot;on_batch_start&quot;</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">set_grad_enabled</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">is_train</span><span class="p">):</span>
+                        <span class="n">state</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_handler</span><span class="p">(</span>
+                            <span class="n">dct</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span>
+                        <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">run_event</span><span class="p">(</span><span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="s2">&quot;on_batch_end&quot;</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                        <span class="n">loader</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">(</span>
+                            <span class="o">**</span><span class="p">{</span>
+                                <span class="n">k</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span>
+                                <span class="nb">sorted</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">batch_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+                                <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;base&quot;</span><span class="p">)</span>
+                            <span class="p">}</span>
+                        <span class="p">)</span>
+                        <span class="n">loader</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">run_event</span><span class="p">(</span><span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="s2">&quot;on_loader_end&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_event</span><span class="p">(</span><span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="s2">&quot;on_epoch_end&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_event</span><span class="p">(</span><span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">event</span><span class="o">=</span><span class="n">f</span><span class="s2">&quot;on_</span><span class="si">{mode}</span><span class="s2">_end&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseModelRunner.train"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">loaders</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">],</span>
+        <span class="n">callbacks</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callback</span><span class="p">],</span>
+        <span class="n">state_params</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">start_epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">logdir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        One stage training method.</span>
+
+<span class="sd">        :param loaders: OrderedDict of torch DataLoaders to run on</span>
+<span class="sd">        :param callbacks: OrderedDict of callback to use</span>
+<span class="sd">        :param state_params: params for state initialization</span>
+<span class="sd">        :param epochs: number of epochs to run</span>
+<span class="sd">        :param start_epoch:</span>
+<span class="sd">        :param verbose: verbose flag</span>
+<span class="sd">        :param logdir: logdir for tensorboard logs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="n">loaders</span><span class="o">=</span><span class="n">loaders</span><span class="p">,</span>
+            <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span>
+            <span class="n">state_params</span><span class="o">=</span><span class="n">state_params</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+            <span class="n">start_epoch</span><span class="o">=</span><span class="n">start_epoch</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">logdir</span><span class="o">=</span><span class="n">logdir</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseModelRunner.prepare_stage_args"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.prepare_stage_args">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">prepare_stage_args</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">stage_config</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">stage_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;args&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">args</span></div>
+
+<div class="viewcode-block" id="BaseModelRunner.prepare_stage_model"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.prepare_stage_model">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">prepare_stage_model</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">stage</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BaseModelRunner.prepare_model_stuff"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.prepare_model_stuff">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">prepare_model_stuff</span><span class="p">(</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">criterion_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">optimizer_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">scheduler_params</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="n">fp16</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Fp16Wrap</span><span class="p">)</span>
+
+        <span class="n">criterion_params</span> <span class="o">=</span> <span class="n">criterion_params</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">criterion</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">get_criterion</span><span class="p">(</span><span class="o">**</span><span class="n">criterion_params</span><span class="p">)</span>
+
+        <span class="n">optimizer_params</span> <span class="o">=</span> <span class="n">optimizer_params</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">optimizer_params</span><span class="p">,</span> <span class="n">fp16</span><span class="o">=</span><span class="n">fp16</span>
+        <span class="p">)</span>
+
+        <span class="n">scheduler_params</span> <span class="o">=</span> <span class="n">scheduler_params</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">scheduler</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">get_scheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="o">**</span><span class="n">scheduler_params</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">criterion</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">scheduler</span></div>
+
+<div class="viewcode-block" id="BaseModelRunner.train_stages"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.train_stages">[docs]</a>    <span class="k">def</span> <span class="nf">train_stages</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">datasource</span><span class="p">:</span> <span class="n">AbstractDataSource</span><span class="p">,</span>
+        <span class="n">args</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">stages_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main method for training DL models.</span>
+
+<span class="sd">        :param datasource: AbstractDataSource instance</span>
+<span class="sd">        :param args: console args</span>
+<span class="sd">        :param stages_config: config</span>
+<span class="sd">        :param verbose: verbose flag</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">stages_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">STAGE_KEYWORDS</span><span class="p">:</span>
+            <span class="n">stages_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">stages_config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="n">loaders</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">stage</span><span class="p">,</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">stages_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage</span> <span class="o">=</span> <span class="n">stage</span>
+
+            <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_stage_args</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">stage_config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">STAGE_KEYWORDS</span><span class="p">:</span>
+                <span class="n">config</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">merge_dicts</span><span class="p">(</span>
+                    <span class="n">stages_params</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="p">)</span>
+
+            <span class="n">reload_loaders</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;data_params&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;reload_loaders&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">loaders</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">reload_loaders</span><span class="p">:</span>
+                <span class="n">loaders</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">prepare_loaders</span><span class="p">(</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+                    <span class="n">stage</span><span class="o">=</span><span class="n">stage</span><span class="p">,</span>
+                    <span class="n">n_workers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">workers</span><span class="p">,</span>
+                    <span class="n">batch_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;data_params&quot;</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="n">callbacks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_callbacks</span><span class="p">(</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+                <span class="n">stage</span><span class="o">=</span><span class="n">stage</span><span class="p">,</span>
+                <span class="n">resume</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">resume</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;callbacks_params&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">prepare_stage_model</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">stage</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;stage_params&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span> <span class="o">=</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">prepare_model_stuff</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                    <span class="n">criterion_params</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;criterion_params&quot;</span><span class="p">),</span>
+                    <span class="n">optimizer_params</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;optimizer_params&quot;</span><span class="p">),</span>
+                    <span class="n">scheduler_params</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;scheduler_params&quot;</span><span class="p">))</span>
+
+            <span class="n">start_epoch</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">(</span>
+                <span class="n">loaders</span><span class="o">=</span><span class="n">loaders</span><span class="p">,</span>
+                <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span>
+                <span class="n">state_params</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;state_params&quot;</span><span class="p">),</span>
+                <span class="n">epochs</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">epochs</span><span class="p">,</span>
+                <span class="n">start_epoch</span><span class="o">=</span><span class="n">start_epoch</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">logdir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">logdir</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseModelRunner.infer"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.infer">[docs]</a>    <span class="k">def</span> <span class="nf">infer</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">loaders</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">],</span>
+        <span class="n">callbacks</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callback</span><span class="p">],</span>
+        <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main method for predicting with DL models.</span>
+
+<span class="sd">        :param loaders: OrderedDict of torch DataLoaders to run on</span>
+<span class="sd">        :param callbacks: OrderedDict of callback to use</span>
+<span class="sd">        :param epochs: number of epochs to run</span>
+<span class="sd">        :param verbose: verbose flag</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="n">loaders</span><span class="o">=</span><span class="n">loaders</span><span class="p">,</span>
+            <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;infer&quot;</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseModelRunner.batch_handler"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.batch_handler">[docs]</a>    <span class="k">def</span> <span class="nf">batch_handler</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dct</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">RunnerState</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Batch handler wrapper with main statistics and device management.</span>
+
+<span class="sd">        :param dct: key-value storage with input tensors</span>
+<span class="sd">        :param model: model to predict with</span>
+<span class="sd">        :param state: runner state</span>
+<span class="sd">        :return: key-value storage with model predictions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch2device</span><span class="p">(</span><span class="n">dct</span><span class="o">=</span><span class="n">dct</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_handler</span><span class="p">(</span><span class="n">dct</span><span class="o">=</span><span class="n">dct</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span></div>
+
+<div class="viewcode-block" id="BaseModelRunner.batch2device"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.batch2device">[docs]</a>    <span class="k">def</span> <span class="nf">batch2device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dct</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">RunnerState</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dct</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">key2device</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">dct</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dct</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">dct</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="n">dct</span></div>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_batch_handler</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">dct</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Batch handler with model forward.</span>
+
+<span class="sd">        :param dct: key-value storage with model inputs</span>
+<span class="sd">        :param model: model to predict with</span>
+<span class="sd">        :return: key-value storage with model predictions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="BaseModelRunner.prepare_callbacks"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.BaseModelRunner.prepare_callbacks">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">prepare_callbacks</span><span class="p">(</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">stage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">resume</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">out_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callback</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Runner callbacks method to handle different runs logic.</span>
+
+<span class="sd">        :param args: console args</span>
+<span class="sd">        :param mode: train/infer</span>
+<span class="sd">        :param stage: training stage name</span>
+<span class="sd">        :param resume: path to checkpoint (used for checkpoint callback)</span>
+<span class="sd">        :param **kwargs: callbacks params</span>
+<span class="sd">        :return: OrderedDict with callbacks</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">callbacks</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">callback</span> <span class="o">=</span> <span class="n">Registry</span><span class="o">.</span><span class="n">get_callback</span><span class="p">(</span><span class="o">**</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">callbacks</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">callback</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># @TODO: remove hack</span>
+            <span class="k">if</span> <span class="n">resume</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;resume&quot;</span><span class="p">):</span>
+                <span class="n">value</span><span class="o">.</span><span class="n">resume</span> <span class="o">=</span> <span class="n">resume</span>
+            <span class="k">if</span> <span class="n">out_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;out_prefix&quot;</span><span class="p">):</span>
+                <span class="n">value</span><span class="o">.</span><span class="n">out_prefix</span> <span class="o">=</span> <span class="n">out_prefix</span>
+
+        <span class="k">return</span> <span class="n">callbacks</span></div></div>
+
+
+<div class="viewcode-block" id="SupervisedModelRunner"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.SupervisedModelRunner">[docs]</a><span class="k">class</span> <span class="nc">SupervisedModelRunner</span><span class="p">(</span><span class="n">BaseModelRunner</span><span class="p">):</span>
+<div class="viewcode-block" id="SupervisedModelRunner.batch2device"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.SupervisedModelRunner.batch2device">[docs]</a>    <span class="k">def</span> <span class="nf">batch2device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dct</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">RunnerState</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dct</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">dct</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="n">dct</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">dct</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;targets&quot;</span><span class="p">:</span> <span class="n">dct</span><span class="p">[</span><span class="mi">1</span><span class="p">]}</span>
+        <span class="n">dct</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">batch2device</span><span class="p">(</span><span class="n">dct</span><span class="o">=</span><span class="n">dct</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dct</span></div>
+
+<div class="viewcode-block" id="SupervisedModelRunner.batch_handler"><a class="viewcode-back" href="../../../api/dl.html#catalyst.dl.runner.SupervisedModelRunner.batch_handler">[docs]</a>    <span class="k">def</span> <span class="nf">batch_handler</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">dct</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">RunnerState</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Batch handler wrapper with main statistics and device management.</span>
+
+<span class="sd">        :param dct: key-value storage with input tensors</span>
+<span class="sd">        :param model: model to predict with</span>
+<span class="sd">        :param state: runner state</span>
+<span class="sd">        :return: key-value storage with model predictions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch2device</span><span class="p">(</span><span class="n">dct</span><span class="o">=</span><span class="n">dct</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">])</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;logits&quot;</span><span class="p">:</span> <span class="n">logits</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">output</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Scitator
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
